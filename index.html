@@ -1,8 +1,30 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Candy Cane Lab</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
-<body><header><a href="#" class="brand">CANDY CANE LAB <span>↗</span></a><span>A sweet little experiment.</span></header>
-<main><section class="intro"><p class="eyebrow">PICK YOUR STRIPES</p><h1>Give it a<br><em>sweet twist.</em></h1><p>A little peppermint. A lot of possibility.</p></section>
-<div class="workspace"><aside class="panel"><h2>Your recipe</h2>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Candy Cane Designer | Candy Cane Lab</title>
+<meta name="description" content="Design your own candy cane in 2D or 3D. Customise colours, stripes, shape and tilt, then download a transparent SVG or PNG.">
+<meta name="theme-color" content="#fffaf3">
+<link rel="icon" href="assets/favicon.ico" sizes="32x32">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
+<link rel="canonical" href="https://epicalex.github.io/candy-cane-lab/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Candy Cane Lab">
+<meta property="og:title" content="Candy Cane Designer">
+<meta property="og:description" content="Customise your stripes in 2D or 3D. Create your own candy cane and download a transparent SVG or PNG.">
+<meta property="og:url" content="https://epicalex.github.io/candy-cane-lab/">
+<meta property="og:image" content="https://epicalex.github.io/candy-cane-lab/assets/social-card.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Candy Cane Designer — customise your stripes in 2D or 3D, with a red and cream striped candy cane.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Candy Cane Designer">
+<meta name="twitter:description" content="Customise your stripes in 2D or 3D. Create your own candy cane and download a transparent SVG or PNG.">
+<meta name="twitter:image" content="https://epicalex.github.io/candy-cane-lab/assets/social-card.png">
+<meta name="twitter:image:alt" content="Candy Cane Designer — customise your stripes in 2D or 3D, with a red and cream striped candy cane.">
+<link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body>
+<main><section class="intro"><h1>Candy Cane <em>Designer</em></h1><p>Customise your stripes in 2D or 3D.</p></section>
+<div class="workspace"><aside class="panel" aria-label="Design controls">
 <fieldset class="mode"><legend>Make it</legend><label><input type="radio" name="mode" value="2d" checked>2D illustration</label><label><input type="radio" name="mode" value="3d">3D candy</label></fieldset>
 <div class="colour-row"><label>Base<input id="base" type="color" value="#fff5e6"></label><label>Stripe<input id="stripe" type="color" value="#c83940"></label><label>Accent<input id="accent" type="color" value="#df7b79"></label></div>
 <label class="check"><input type="checkbox" id="pinstripe" checked> A little accent stripe</label>
@@ -11,11 +33,11 @@
 <label class="range-label" for="hook">Hook size <output id="hook-value"></output></label><input id="hook" type="range" min="42" max="90" value="65">
 <label class="range-label" for="frequency">Stripe repeats <output id="frequency-value"></output></label><input id="frequency" type="range" min="4" max="20" value="10">
 <label class="range-label" for="coverage">Stripe width <output id="coverage-value"></output></label><input id="coverage" type="range" min="15" max="65" value="36">
-<section id="flat-angle-controls"><label class="range-label" for="flatTilt">Tilt <output id="flatTilt-value"></output></label><input id="flatTilt" type="range" min="-90" max="90" value="0"><p class="hint">Lean left or right.</p></section>
-<section id="spin-controls" hidden><h3>A new angle</h3><label class="range-label" for="angle">Y-axis rotation <output id="angle-value"></output></label><input id="angle" type="range" min="0" max="360" value="20"><label class="range-label" for="tilt">Tilt <output id="tilt-value"></output></label><input id="tilt" type="range" min="-90" max="90" value="0"><p class="hint">Lean left or right, just like the 2D version.</p><label class="range-label" for="speed">Spin speed <output id="speed-value"></output></label><input id="speed" type="range" min="5" max="90" value="25"><button id="spin" aria-pressed="false">Start spinning ↻</button><p class="hint">Drag the candy to turn it yourself.</p></section>
+<section><label class="range-label" for="tilt">Tilt <output id="tilt-value"></output></label><input id="tilt" type="range" min="-90" max="90" value="0"><p class="hint">Lean left or right in 2D and 3D.</p></section>
+<section id="spin-controls" hidden><h3>A new angle</h3><label class="range-label" for="angle">Y-axis rotation <output id="angle-value"></output></label><input id="angle" type="range" min="0" max="360" value="20"><label class="range-label" for="speed">Spin speed <output id="speed-value"></output></label><input id="speed" type="range" min="5" max="90" value="25"><button id="spin" aria-pressed="false">Start spinning ↻</button><p class="hint">Drag the candy to turn it yourself.</p></section>
 </aside>
 <section class="preview-panel"><div class="preview-heading"><p class="eyebrow" id="preview-title">FRESH FROM THE SWEET SHOP</p><label class="backdrop">Backdrop<input id="backdrop" type="color" value="#f3e8e3"></label></div>
-<div class="stage" id="stage"><div id="flat"></div><canvas id="solid" width="900" height="1000" aria-label="Rotatable 3D candy cane" hidden></canvas><span class="stage-label" id="stage-label">01 / THE ORIGINAL SWEET SPOT</span></div>
+<div class="stage" id="stage"><div id="flat"></div><canvas id="solid" width="900" height="1000" aria-label="Rotatable 3D candy cane" hidden></canvas></div>
 <div class="preview-footer"><span id="format-note">Transparent SVG. Ready for whatever you’re making.</span><span id="mode-badge">2D</span></div>
 <div class="actions"><button class="primary" id="download">Download SVG ↗</button><button id="copy">Copy SVG</button><button id="reset">Reset recipe</button></div><p id="status" role="status"></p>
 </section></div><footer>All sugar, no crumbs. Made in your browser.<nav class="creator-links" aria-label="Project links"><a href="https://www.linkedin.com/in/alexcragg" target="_blank" rel="noopener noreferrer">Alex Cragg on LinkedIn ↗</a><a href="https://github.com/epicalex/candy-cane-lab" target="_blank" rel="noopener noreferrer">View on GitHub ↗</a></nav></footer></main></body></html>

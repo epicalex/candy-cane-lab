@@ -1,7 +1,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const ids=['base','stripe','accent','pinstripe','thickness','hook','frequency','coverage','angle','tilt','flatTilt','speed'];
-const defaults={base:'#fff5e6',stripe:'#c83940',accent:'#df7b79',pinstripe:true,thickness:'34',hook:'65',frequency:'10',coverage:'36',angle:'20',tilt:'0',flatTilt:'0',speed:'25'};
+const ids=['base','stripe','accent','pinstripe','thickness','hook','frequency','coverage','angle','tilt','speed'];
+const defaults={base:'#fff5e6',stripe:'#c83940',accent:'#df7b79',pinstripe:true,thickness:'34',hook:'65',frequency:'10',coverage:'36',angle:'20',tilt:'0',speed:'25'};
 let mode='2d',svg='',mesh=[],spinning=false,last=0,rotation=20,frame=0;
 const mod=x=>((x%1)+1)%1;
 function recipe(){return Object.fromEntries(ids.map(id=>[id,$(id).type==='checkbox'?$(id).checked:$(id).type==='range'?Number($(id).value):$(id).value]));}
@@ -34,7 +34,7 @@ function makeFlat(p){
  const silhouette='M'+(-R-r)+',210 L'+(-R-r)+',-100 A'+(R+r)+','+(R+r)+' 0 0 1 '+(R+r)+',-100 A'+r+','+r+' 0 0 1 '+(R-r)+',-100 A'+(R-r)+','+(R-r)+' 0 0 0 '+(-R+r)+',-100 L'+(-R+r)+',210 A'+r+','+r+' 0 0 1 '+(-R-r)+',210 Z';
  let paths='';
  for(let k=-2;k<=p.frequency+2;k++){paths+=stripe(k,0,p.coverage/100,p.stripe);if(p.pinstripe)paths+=stripe(k,.74,.81,p.accent);}
- return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-270 -270 540 540" role="img" aria-label="Striped candy cane"><defs><clipPath id="cane-outline"><path d="'+silhouette+'"/></clipPath></defs><g transform="rotate('+p.flatTilt+')"><path d="'+silhouette+'" fill="'+p.base+'"/><g clip-path="url(#cane-outline)">'+paths+'</g></g></svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-290 -290 580 580" role="img" aria-label="Striped candy cane"><defs><clipPath id="cane-outline"><path d="'+silhouette+'"/></clipPath></defs><g transform="rotate('+p.tilt+')"><path d="'+silhouette+'" fill="'+p.base+'"/><g clip-path="url(#cane-outline)">'+paths+'</g></g></svg>';
 }
 function buildMesh(p){
  mesh=[];const total=310+Math.PI*p.hook,N=380,K=96,r=p.thickness/2;
@@ -53,12 +53,13 @@ function buildMesh(p){
 let gpu=null,meshUploaded=null;
 function initGPU(){
  const canvas=$('solid');
- canvas.width=1800;canvas.height=2000;
+
  const gl=canvas.getContext('webgl2',{alpha:true,antialias:true,preserveDrawingBuffer:true});
  if(!gl)throw new Error('This browser needs WebGL 2 for the smooth 3D preview.');
  const vertex=`#version 300 es
  in vec3 position; in vec3 normal; in float phase; in float tip;
  uniform float angle,tilt;
+ uniform vec2 extent;
  out vec3 surfaceNormal; out float stripePhase; out float tipAmount;
  void main(){
   float c=cos(angle),s=sin(angle);
@@ -68,7 +69,7 @@ function initGPU(){
   p=vec3(p.x*ct-p.y*st,p.x*st+p.y*ct,p.z);
   surfaceNormal=vec3(surfaceNormal.x*ct-surfaceNormal.y*st,surfaceNormal.x*st+surfaceNormal.y*ct,surfaceNormal.z);
   stripePhase=phase; tipAmount=tip;
-  gl_Position=vec4(p.x*1.7/450.0,-(p.y*1.7+10.0)/500.0,-p.z/500.0,1.0);
+  gl_Position=vec4(p.x/extent.x,-p.y/extent.y,-p.z/500.0,1.0);
  }`;
  const fragment=`#version 300 es
  precision highp float;
@@ -104,12 +105,17 @@ function initGPU(){
   const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,size,gl.FLOAT,false,32,offset);
  }
  gl.enable(gl.DEPTH_TEST);
- const uniforms=Object.fromEntries(['angle','tilt','baseColour','stripeColour','accentColour','coverage','accentOn'].map(name=>[name,gl.getUniformLocation(program,name)]));
+ const uniforms=Object.fromEntries(['angle','tilt','extent','baseColour','stripeColour','accentColour','coverage','accentOn'].map(name=>[name,gl.getUniformLocation(program,name)]));
  return {gl,uniforms,count:0};
 }
 function draw(){
  if(!gpu)gpu=initGPU();
  const {gl,uniforms}=gpu,p=recipe();
+ // Match the SVG's square viewBox with equal scale on both axes.
+ const {width,height}=$('stage').getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+ const w=Math.max(1,Math.round(width*dpr)),h=Math.max(1,Math.round(height*dpr));
+ if(gl.canvas.width!==w||gl.canvas.height!==h){gl.canvas.width=w;gl.canvas.height=h;}
+ gl.uniform2f(uniforms.extent,290*Math.max(1,w/h),290*Math.max(1,h/w));
  if(meshUploaded!==mesh){
   const vertices=new Float32Array(mesh.length*6*8);let index=0;
   for(const face of mesh)for(const i of [0,1,2,0,2,3]){
@@ -125,17 +131,17 @@ function draw(){
  gl.drawArrays(gl.TRIANGLES,0,gpu.count);
 }
 function render(){
- const p=recipe();for(const id of ['thickness','hook','frequency','coverage','angle','tilt','flatTilt','speed'])$(id+'-value').textContent=p[id]+(id==='coverage'?'%':(id==='angle'||id==='tilt'||id==='flatTilt')?'°':id==='speed'?'°/s':id==='frequency'?'':' px');
+ const p=recipe();for(const id of ['thickness','hook','frequency','coverage','angle','tilt','speed'])$(id+'-value').textContent=p[id]+(id==='coverage'?'%':(id==='angle'||id==='tilt')?'°':id==='speed'?'°/s':id==='frequency'?'':' px');
  if(mode==='2d'){svg=makeFlat(p);$('flat').innerHTML=svg;}else{buildMesh(p);draw();}
  $('status').textContent='';
 }
 function stop(){spinning=false;cancelAnimationFrame(frame);$('spin').textContent='Start spinning ↻';$('spin').setAttribute('aria-pressed','false');last=0;}
 function tick(time){if(!spinning)return;if(last)rotation=mod((rotation+(time-last)/1000*Number($('speed').value))/360)*360;last=time;$('angle').value=Math.round(rotation);$('angle-value').textContent=Math.round(rotation)+'°';draw();frame=requestAnimationFrame(tick);}
 document.querySelectorAll('input[name=mode]').forEach(el=>el.addEventListener('change',()=>{
- mode=el.value;stop();$('flat').hidden=mode!=='2d';$('solid').hidden=mode!=='3d';$('spin-controls').hidden=mode!=='3d';$('flat-angle-controls').hidden=mode!=='2d';$('copy').hidden=mode!=='2d';
- $('download').textContent=mode==='2d'?'Download SVG ↗':'Download PNG ↗';$('mode-badge').textContent=mode.toUpperCase();$('format-note').textContent=mode==='2d'?'Transparent SVG. Ready for whatever you’re making.':'A rounded 3D cane. Export the current angle as a transparent PNG.';$('stage-label').textContent=mode==='2d'?'01 / THE ORIGINAL SWEET SPOT':'02 / A WHOLE NEW DIMENSION';render();
+ mode=el.value;stop();$('flat').hidden=mode!=='2d';$('solid').hidden=mode!=='3d';$('spin-controls').hidden=mode!=='3d';$('copy').hidden=mode!=='2d';
+ $('download').textContent=mode==='2d'?'Download SVG ↗':'Download PNG ↗';$('mode-badge').textContent=mode.toUpperCase();$('format-note').textContent=mode==='2d'?'Transparent SVG. Ready for whatever you’re making.':'A rounded 3D cane. Export the current angle as a transparent PNG.';render();
 }));
-for(const id of ids)$(id).addEventListener('input',()=>{if(id==='angle'){stop();rotation=Number($('angle').value);draw();$('angle-value').textContent=rotation+'°';}else if(id==='tilt'){draw();$('tilt-value').textContent=$('tilt').value+'°';}else if(id==='speed')$('speed-value').textContent=$('speed').value+'°/s';else render();});
+for(const id of ids)$(id).addEventListener('input',()=>{if(id==='angle'){stop();rotation=Number($('angle').value);draw();$('angle-value').textContent=rotation+'°';}else if(id==='tilt'&&mode==='3d'){draw();$('tilt-value').textContent=$('tilt').value+'°';}else if(id==='speed')$('speed-value').textContent=$('speed').value+'°/s';else render();});
 $('spin').addEventListener('click',()=>{if(spinning)stop();else{spinning=true;$('spin').textContent='Pause spinning';$('spin').setAttribute('aria-pressed','true');frame=requestAnimationFrame(tick);}});
 let drag=null;
 $('solid').addEventListener('pointerdown',e=>{stop();drag={x:e.clientX,a:rotation};$('solid').setPointerCapture(e.pointerId);});
@@ -143,10 +149,16 @@ $('solid').addEventListener('pointermove',e=>{if(!drag)return;rotation=mod((drag
 for(const event of ['pointerup','pointercancel'])$('solid').addEventListener(event,()=>drag=null);
 $('backdrop').addEventListener('input',()=>$('stage').style.background=$('backdrop').value);
 const palettes={classic:['#fff5e6','#c83940','#df7b79'],forest:['#fff5e6','#235c4c','#b9c9a2'],sugar:['#fff0f5','#824477','#e59ab1']};
-document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{['base','stripe','accent'].forEach((id,i)=>$(id).value=palettes[b.dataset.palette][i]);render();}));
+document.querySelectorAll('[data-palette]').forEach(b=>{
+ const colours=palettes[b.dataset.palette];
+ ['base','stripe','accent'].forEach((id,i)=>b.style.setProperty('--preset-'+id,colours[i]));
+ b.addEventListener('click',()=>{['base','stripe','accent'].forEach((id,i)=>$(id).value=colours[i]);render();});
+});
 $('reset').addEventListener('click',()=>{stop();for(const [id,v]of Object.entries(defaults))$(id)[$(id).type==='checkbox'?'checked':'value']=v;rotation=20;render();});
 function save(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();}
 $('download').addEventListener('click',()=>{if(mode==='2d'){const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));save(url,'candy-cane.svg');setTimeout(()=>URL.revokeObjectURL(url),1000);}else save($('solid').toDataURL('image/png'),'candy-cane-3d.png');$('status').textContent='A little sweetness, ready to go.';});
 $('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(svg);$('status').textContent='SVG copied.';}catch{$('status').textContent='Clipboard unavailable. Download the SVG instead.';}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
 render();
+
+new ResizeObserver(()=>{if(mode==='3d')draw();}).observe($('stage'));
